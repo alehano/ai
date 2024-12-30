@@ -13,7 +13,7 @@ import (
 	"google.golang.org/api/option"
 )
 
-type GeminiLLM struct {
+type Gemini struct {
 	client         *genai.Client
 	model          string
 	safetySettings []*genai.SafetySetting
@@ -38,12 +38,12 @@ func validateImageSize(image io.Reader) (io.Reader, error) {
 	return bytes.NewReader(buf.Bytes()), nil
 }
 
-func NewGeminiGen(projectID, location, model string, maxTokens int, temperature *float32, opts ...option.ClientOption) (*GeminiLLM, error) {
+func NewGemini(projectID, location, model string, maxTokens int, temperature *float32, opts ...option.ClientOption) (*Gemini, error) {
 	client, err := genai.NewClient(context.Background(), projectID, location, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Gemini client: %v", err)
 	}
-	return &GeminiLLM{
+	return &Gemini{
 		client:      client,
 		model:       model,
 		maxTokens:   maxTokens,
@@ -51,7 +51,7 @@ func NewGeminiGen(projectID, location, model string, maxTokens int, temperature 
 	}, nil
 }
 
-func (g *GeminiLLM) Generate(ctx context.Context, systemPrompt, prompt string) (string, error) {
+func (g *Gemini) Generate(ctx context.Context, systemPrompt, prompt string) (string, error) {
 	gemini := g.client.GenerativeModel(g.model)
 	gemini.SafetySettings = g.safetySettings
 	if g.temperature != nil {
@@ -81,7 +81,7 @@ func (g *GeminiLLM) Generate(ctx context.Context, systemPrompt, prompt string) (
 	return res.String(), nil
 }
 
-func (g *GeminiLLM) GenerateStream(ctx context.Context, systemPrompt, prompt string, resultCh chan string, doneCh chan bool, errCh chan error) {
+func (g *Gemini) GenerateStream(ctx context.Context, systemPrompt, prompt string, resultCh chan string, doneCh chan bool, errCh chan error) {
 	gemini := g.client.GenerativeModel(g.model)
 	gemini.SafetySettings = g.safetySettings
 	if g.temperature != nil {
@@ -133,15 +133,15 @@ func (g *GeminiLLM) GenerateStream(ctx context.Context, systemPrompt, prompt str
 	}()
 }
 
-func (g *GeminiLLM) GetModel() string {
+func (g *Gemini) GetModel() string {
 	return g.model
 }
 
-func (g *GeminiLLM) GenerateWithImage(ctx context.Context, prompt string, image io.Reader, mimeType MimeType) (string, error) {
+func (g *Gemini) GenerateWithImage(ctx context.Context, prompt string, image io.Reader, mimeType MimeType) (string, error) {
 	return g.GenerateWithImages(ctx, prompt, []io.Reader{image}, []MimeType{mimeType})
 }
 
-func (g *GeminiLLM) GenerateWithImages(ctx context.Context, prompt string, images []io.Reader, mimeTypes []MimeType) (string, error) {
+func (g *Gemini) GenerateWithImages(ctx context.Context, prompt string, images []io.Reader, mimeTypes []MimeType) (string, error) {
 	if len(images) != len(mimeTypes) {
 		return "", fmt.Errorf("number of images and mime types must match")
 	}
@@ -161,7 +161,7 @@ func (g *GeminiLLM) GenerateWithImages(ctx context.Context, prompt string, image
 	return g.GenerateWithMessages(ctx, []Message{msg})
 }
 
-func (g *GeminiLLM) GenerateWithMessages(ctx context.Context, messages []Message) (string, error) {
+func (g *Gemini) GenerateWithMessages(ctx context.Context, messages []Message) (string, error) {
 	gemini := g.client.GenerativeModel(g.model)
 	gemini.SafetySettings = g.safetySettings
 	if g.temperature != nil {

@@ -31,8 +31,8 @@ type Message struct {
 	Content  string    // optional
 }
 
-// LLMGen defines the interface for language model generators
-type LLMGen interface {
+// LLM defines the interface for language model generators
+type LLM interface {
 	// Generate produces a response given a system prompt and user prompt
 	Generate(ctx context.Context, systemPrompt, prompt string) (string, error)
 

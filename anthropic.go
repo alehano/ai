@@ -9,7 +9,7 @@ import (
 	"github.com/liushuangls/go-anthropic/v2"
 )
 
-type AnthropicGen struct {
+type Anthropic struct {
 	client      *anthropic.Client
 	model       string
 	maxTokens   int
@@ -17,7 +17,7 @@ type AnthropicGen struct {
 	cachePrompt bool
 }
 
-func NewAnthropicGen(apiKey, model string, maxTokens int, temperature float32, cachePrompt bool) *AnthropicGen {
+func NewAnthropic(apiKey, model string, maxTokens int, temperature float32, cachePrompt bool) *Anthropic {
 	client := anthropic.NewClient(apiKey)
 	if cachePrompt {
 		client = anthropic.NewClient(
@@ -26,7 +26,7 @@ func NewAnthropicGen(apiKey, model string, maxTokens int, temperature float32, c
 		)
 	}
 
-	return &AnthropicGen{
+	return &Anthropic{
 		client:      client,
 		model:       model,
 		maxTokens:   maxTokens,
@@ -35,7 +35,7 @@ func NewAnthropicGen(apiKey, model string, maxTokens int, temperature float32, c
 	}
 }
 
-func (a *AnthropicGen) Generate(ctx context.Context, systemPrompt, prompt string) (string, error) {
+func (a *Anthropic) Generate(ctx context.Context, systemPrompt, prompt string) (string, error) {
 	req := anthropic.MessagesRequest{
 		Model:       anthropic.Model(a.model),
 		Temperature: &a.temperature,
@@ -73,7 +73,7 @@ func (a *AnthropicGen) Generate(ctx context.Context, systemPrompt, prompt string
 	return resp.Content[0].GetText(), nil
 }
 
-func (a *AnthropicGen) GenerateStream(ctx context.Context, systemPrompt, prompt string, resultCh chan string, doneCh chan bool, errCh chan error) {
+func (a *Anthropic) GenerateStream(ctx context.Context, systemPrompt, prompt string, resultCh chan string, doneCh chan bool, errCh chan error) {
 	req := anthropic.MessagesStreamRequest{
 		MessagesRequest: anthropic.MessagesRequest{
 			Model:       anthropic.Model(a.model),
@@ -145,15 +145,15 @@ func (a *AnthropicGen) GenerateStream(ctx context.Context, systemPrompt, prompt 
 	<-ctx.Done()
 }
 
-func (a *AnthropicGen) GetModel() string {
+func (a *Anthropic) GetModel() string {
 	return a.model
 }
 
-func (a *AnthropicGen) GenerateWithImage(ctx context.Context, prompt string, image io.Reader, mimeType MimeType) (string, error) {
+func (a *Anthropic) GenerateWithImage(ctx context.Context, prompt string, image io.Reader, mimeType MimeType) (string, error) {
 	return a.GenerateWithImages(ctx, prompt, []io.Reader{image}, []MimeType{mimeType})
 }
 
-func (a *AnthropicGen) GenerateWithImages(ctx context.Context, prompt string, images []io.Reader, mimeTypes []MimeType) (string, error) {
+func (a *Anthropic) GenerateWithImages(ctx context.Context, prompt string, images []io.Reader, mimeTypes []MimeType) (string, error) {
 	if len(images) != len(mimeTypes) {
 		return "", fmt.Errorf("number of images and mime types must match")
 	}
@@ -174,7 +174,7 @@ func (a *AnthropicGen) GenerateWithImages(ctx context.Context, prompt string, im
 	return a.GenerateWithMessages(ctx, []Message{msg})
 }
 
-func (a *AnthropicGen) GenerateWithMessages(ctx context.Context, messages []Message) (string, error) {
+func (a *Anthropic) GenerateWithMessages(ctx context.Context, messages []Message) (string, error) {
 	var anthropicMessages []anthropic.Message
 
 	for _, msg := range messages {

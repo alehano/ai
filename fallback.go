@@ -7,19 +7,19 @@ import (
 	"io"
 )
 
-type FallbackGen struct {
-	gens          []LLMGen
+type FallbackLLM struct {
+	llms          []LLM
 	currentModel  string
 	errorCallback func(error)
 }
 
-func NewFallbackGen(gens []LLMGen, errorCallback func(error)) *FallbackGen {
-	return &FallbackGen{gens: gens, errorCallback: errorCallback}
+func NewFallbackLLM(gens []LLM, errorCallback func(error)) *FallbackLLM {
+	return &FallbackLLM{llms: gens, errorCallback: errorCallback}
 }
 
-func (f *FallbackGen) generateWithFallback(fn func(gen LLMGen) (string, error)) (string, error) {
+func (f *FallbackLLM) generateWithFallback(fn func(gen LLM) (string, error)) (string, error) {
 	var lastErr error
-	for _, gen := range f.gens {
+	for _, gen := range f.llms {
 		response, err := fn(gen)
 		if err == nil {
 			f.currentModel = gen.GetModel()
@@ -33,15 +33,15 @@ func (f *FallbackGen) generateWithFallback(fn func(gen LLMGen) (string, error)) 
 	return "", fmt.Errorf("LLM failed, last error: %v", lastErr)
 }
 
-func (f *FallbackGen) Generate(ctx context.Context, systemPrompt, prompt string) (string, error) {
-	return f.generateWithFallback(func(gen LLMGen) (string, error) {
+func (f *FallbackLLM) Generate(ctx context.Context, systemPrompt, prompt string) (string, error) {
+	return f.generateWithFallback(func(gen LLM) (string, error) {
 		return gen.Generate(ctx, systemPrompt, prompt)
 	})
 }
 
-func (f *FallbackGen) GenerateStream(ctx context.Context, systemPrompt, prompt string, resultCh chan string, doneCh chan bool, errCh chan error) {
+func (f *FallbackLLM) GenerateStream(ctx context.Context, systemPrompt, prompt string, resultCh chan string, doneCh chan bool, errCh chan error) {
 	var lastErr error
-	for i, gen := range f.gens {
+	for i, gen := range f.llms {
 		// Send [CLEAR] message if this is not the first generator
 		if i > 0 {
 			select {
@@ -108,25 +108,25 @@ func (f *FallbackGen) GenerateStream(ctx context.Context, systemPrompt, prompt s
 	}
 }
 
-func (f *FallbackGen) GetModel() string {
+func (f *FallbackLLM) GetModel() string {
 	return f.currentModel
 }
 
-func (f *FallbackGen) GenerateWithImage(ctx context.Context, prompt string, image io.Reader, mimeType MimeType) (string, error) {
-	return f.generateWithFallback(func(gen LLMGen) (string, error) {
+func (f *FallbackLLM) GenerateWithImage(ctx context.Context, prompt string, image io.Reader, mimeType MimeType) (string, error) {
+	return f.generateWithFallback(func(gen LLM) (string, error) {
 		return gen.GenerateWithImage(ctx, prompt, image, mimeType)
 	})
 }
 
-func (f *FallbackGen) GenerateWithImages(ctx context.Context, prompt string, images []io.Reader, mimeTypes []MimeType) (string, error) {
-	return f.generateWithFallback(func(gen LLMGen) (string, error) {
+func (f *FallbackLLM) GenerateWithImages(ctx context.Context, prompt string, images []io.Reader, mimeTypes []MimeType) (string, error) {
+	return f.generateWithFallback(func(gen LLM) (string, error) {
 		return gen.GenerateWithImages(ctx, prompt, images, mimeTypes)
 	})
 }
 
-func (f *FallbackGen) GenerateWithMessages(ctx context.Context, messages []Message) (string, error) {
+func (f *FallbackLLM) GenerateWithMessages(ctx context.Context, messages []Message) (string, error) {
 	var lastErr error
-	for _, gen := range f.gens {
+	for _, gen := range f.llms {
 		response, err := gen.GenerateWithMessages(ctx, messages)
 		if err == nil {
 			f.currentModel = gen.GetModel()

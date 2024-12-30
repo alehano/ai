@@ -10,7 +10,7 @@ import (
 	"github.com/openai/openai-go/option"
 )
 
-type OpenAIClient struct {
+type OpenAI struct {
 	client      *openai.Client
 	model       string
 	maxTokens   int64
@@ -18,18 +18,18 @@ type OpenAIClient struct {
 	isJson      bool
 }
 
-func NewOpenAIClient(apiKey string, model string, maxTokens int64, temperature float64, isJson bool) *OpenAIClient {
-	return NewOpenAICompatibleClient("https://api.openai.com/v1/", apiKey, model, maxTokens, temperature, isJson)
+func NewOpenAI(apiKey string, model string, maxTokens int64, temperature float64, isJson bool) *OpenAI {
+	return NewOpenAICompatible("https://api.openai.com/v1/", apiKey, model, maxTokens, temperature, isJson)
 }
 
-func NewGeminiSimpleClient(apiKey string, model string, maxTokens int64, temperature float64, isJson bool) *OpenAIClient {
-	return NewOpenAICompatibleClient("https://generativelanguage.googleapis.com/v1beta/openai/", apiKey, model, maxTokens, temperature, isJson)
+func NewGeminiSimple(apiKey string, model string, maxTokens int64, temperature float64, isJson bool) *OpenAI {
+	return NewOpenAICompatible("https://generativelanguage.googleapis.com/v1beta/openai/", apiKey, model, maxTokens, temperature, isJson)
 }
 
 // https://docs.lambdalabs.com/public-cloud/lambda-inference-api/
 // Caution: Do not works with images
-func NewLambdaLabClient(apiKey string, model string, maxTokens int64, temperature float64, isJson bool) *OpenAIClient {
-	return NewOpenAICompatibleClient("https://api.lambdalabs.com/v1/", apiKey, model, maxTokens, temperature, isJson)
+func NewLambdaLab(apiKey string, model string, maxTokens int64, temperature float64, isJson bool) *OpenAI {
+	return NewOpenAICompatible("https://api.lambdalabs.com/v1/", apiKey, model, maxTokens, temperature, isJson)
 }
 
 // https://console.groq.com/docs/
@@ -39,16 +39,16 @@ func NewLambdaLabClient(apiKey string, model string, maxTokens int64, temperatur
 // }
 
 // https://docs.x.ai/docs/api-reference
-func NewXAIClient(apiKey string, model string, maxTokens int64, temperature float64, isJson bool) *OpenAIClient {
-	return NewOpenAICompatibleClient("https://api.x.ai/v1/", apiKey, model, maxTokens, temperature, isJson)
+func NewXAI(apiKey string, model string, maxTokens int64, temperature float64, isJson bool) *OpenAI {
+	return NewOpenAICompatible("https://api.x.ai/v1/", apiKey, model, maxTokens, temperature, isJson)
 }
 
-func NewOpenAICompatibleClient(baseURL, apiKey string, model string, maxTokens int64, temperature float64, isJson bool) *OpenAIClient {
+func NewOpenAICompatible(baseURL, apiKey string, model string, maxTokens int64, temperature float64, isJson bool) *OpenAI {
 	client := openai.NewClient(
 		option.WithAPIKey(apiKey),
 		option.WithBaseURL(baseURL),
 	)
-	return &OpenAIClient{
+	return &OpenAI{
 		client:      client,
 		model:       model,
 		maxTokens:   maxTokens,
@@ -57,7 +57,7 @@ func NewOpenAICompatibleClient(baseURL, apiKey string, model string, maxTokens i
 	}
 }
 
-func (o *OpenAIClient) Generate(ctx context.Context, systemPrompt, prompt string) (string, error) {
+func (o *OpenAI) Generate(ctx context.Context, systemPrompt, prompt string) (string, error) {
 	params := openai.ChatCompletionNewParams{
 		Messages: openai.F([]openai.ChatCompletionMessageParamUnion{
 			openai.SystemMessage(systemPrompt),
@@ -83,7 +83,7 @@ func (o *OpenAIClient) Generate(ctx context.Context, systemPrompt, prompt string
 	return completion.Choices[0].Message.Content, nil
 }
 
-func (o *OpenAIClient) GenerateStream(ctx context.Context, systemPrompt, prompt string, resultCh chan string, doneCh chan bool, errCh chan error) {
+func (o *OpenAI) GenerateStream(ctx context.Context, systemPrompt, prompt string, resultCh chan string, doneCh chan bool, errCh chan error) {
 	stream := o.client.Chat.Completions.NewStreaming(ctx, openai.ChatCompletionNewParams{
 		Messages: openai.F([]openai.ChatCompletionMessageParamUnion{
 			openai.SystemMessage(systemPrompt),
@@ -112,15 +112,15 @@ func (o *OpenAIClient) GenerateStream(ctx context.Context, systemPrompt, prompt 
 	}()
 }
 
-func (o *OpenAIClient) GetModel() string {
+func (o *OpenAI) GetModel() string {
 	return o.model
 }
 
-func (o *OpenAIClient) GenerateWithImage(ctx context.Context, prompt string, image io.Reader, mimeType MimeType) (string, error) {
+func (o *OpenAI) GenerateWithImage(ctx context.Context, prompt string, image io.Reader, mimeType MimeType) (string, error) {
 	return o.GenerateWithImages(ctx, prompt, []io.Reader{image}, []MimeType{mimeType})
 }
 
-func (o *OpenAIClient) GenerateWithImages(ctx context.Context, prompt string, images []io.Reader, mimeTypes []MimeType) (string, error) {
+func (o *OpenAI) GenerateWithImages(ctx context.Context, prompt string, images []io.Reader, mimeTypes []MimeType) (string, error) {
 	if len(images) != len(mimeTypes) {
 		return "", fmt.Errorf("number of images and mime types must match")
 	}
@@ -139,7 +139,7 @@ func (o *OpenAIClient) GenerateWithImages(ctx context.Context, prompt string, im
 	return o.GenerateWithMessages(ctx, messages)
 }
 
-func (o *OpenAIClient) GenerateWithMessages(ctx context.Context, messages []Message) (string, error) {
+func (o *OpenAI) GenerateWithMessages(ctx context.Context, messages []Message) (string, error) {
 	chatMessages := make([]openai.ChatCompletionMessageParamUnion, len(messages))
 
 	for i, msg := range messages {

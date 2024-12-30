@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-func TestOpenAIGen(t *testing.T) {
+func TestOpenAI(t *testing.T) {
 	// Load test.jpg
 	image, err := os.Open("test/test.jpg")
 	if err != nil {
@@ -34,7 +34,7 @@ func TestOpenAIGen(t *testing.T) {
 	// llmGenOpenAI := NewOpenAIClient(cfg.OpenAIKey, cfg.OpenAIModel, int64(cfg.DefaultTokesLimit), 1.0, false)
 	// llmGenOpenAI := NewGroqClient(cfg.APIKey, cfg.Model, int64(cfg.DefaultTokesLimit), 1.0, false)
 	// llmGenOpenAI := NewLambdaLabClient(cfg.APIKey, cfg.Model, int64(cfg.DefaultTokesLimit), 1.0, false)
-	llmGenOpenAI := NewXAIClient(cfg.APIKey, cfg.Model, int64(cfg.DefaultTokesLimit), 1.0, false)
+	llmGenOpenAI := NewXAI(cfg.APIKey, cfg.Model, int64(cfg.DefaultTokesLimit), 1.0, false)
 
 	res, err := llmGenOpenAI.GenerateWithMessages(context.Background(), []Message{
 		{

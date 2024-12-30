@@ -12,7 +12,7 @@ import (
 
 // Alternative OpenAI client with unoffical lib
 // Deprecated: use OpenAIClient instead
-type OpenAIAltGen struct {
+type OpenAIAlt struct {
 	client      *openai.Client
 	model       string
 	maxTokens   int
@@ -20,10 +20,10 @@ type OpenAIAltGen struct {
 	isJson      bool
 }
 
-func NewOpenAIAltGen(apiKey, model string, maxTokens int, temperature float32, isJson bool) *OpenAIAltGen {
+func NewOpenAIAlt(apiKey, model string, maxTokens int, temperature float32, isJson bool) *OpenAIAlt {
 	client := openai.NewClient(apiKey)
 
-	return &OpenAIAltGen{
+	return &OpenAIAlt{
 		client:      client,
 		model:       model,
 		maxTokens:   maxTokens,
@@ -32,7 +32,7 @@ func NewOpenAIAltGen(apiKey, model string, maxTokens int, temperature float32, i
 	}
 }
 
-func (o *OpenAIAltGen) Generate(ctx context.Context, systemPrompt, prompt string) (string, error) {
+func (o *OpenAIAlt) Generate(ctx context.Context, systemPrompt, prompt string) (string, error) {
 	messages := []openai.ChatCompletionMessage{
 		{
 			Role:    openai.ChatMessageRoleUser,
@@ -80,7 +80,7 @@ func (o *OpenAIAltGen) Generate(ctx context.Context, systemPrompt, prompt string
 	return resp.Choices[0].Message.Content, nil
 }
 
-func (o *OpenAIAltGen) GenerateStream(ctx context.Context, systemPrompt, prompt string, resultCh chan string, doneCh chan bool, errCh chan error) {
+func (o *OpenAIAlt) GenerateStream(ctx context.Context, systemPrompt, prompt string, resultCh chan string, doneCh chan bool, errCh chan error) {
 	messages := []openai.ChatCompletionMessage{
 		{
 			Role:    openai.ChatMessageRoleUser,
@@ -146,15 +146,15 @@ func (o *OpenAIAltGen) GenerateStream(ctx context.Context, systemPrompt, prompt 
 	}
 }
 
-func (o *OpenAIAltGen) GetModel() string {
+func (o *OpenAIAlt) GetModel() string {
 	return o.model
 }
 
-func (o *OpenAIAltGen) GenerateWithImage(ctx context.Context, prompt string, image io.Reader, mimeType MimeType) (string, error) {
+func (o *OpenAIAlt) GenerateWithImage(ctx context.Context, prompt string, image io.Reader, mimeType MimeType) (string, error) {
 	return o.GenerateWithImages(ctx, prompt, []io.Reader{image}, []MimeType{mimeType})
 }
 
-func (o *OpenAIAltGen) GenerateWithImages(ctx context.Context, prompt string, images []io.Reader, mimeTypes []MimeType) (string, error) {
+func (o *OpenAIAlt) GenerateWithImages(ctx context.Context, prompt string, images []io.Reader, mimeTypes []MimeType) (string, error) {
 	if len(images) != len(mimeTypes) {
 		return "", fmt.Errorf("number of images and mime types must match")
 	}
@@ -172,7 +172,7 @@ func (o *OpenAIAltGen) GenerateWithImages(ctx context.Context, prompt string, im
 	return o.GenerateWithMessages(ctx, []Message{msg})
 }
 
-func (o *OpenAIAltGen) GenerateWithMessages(ctx context.Context, messages []Message) (string, error) {
+func (o *OpenAIAlt) GenerateWithMessages(ctx context.Context, messages []Message) (string, error) {
 	var chatMessages []openai.ChatCompletionMessage
 
 	for _, msg := range messages {

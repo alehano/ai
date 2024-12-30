@@ -22,7 +22,7 @@ type GeminiSimpleLLM struct {
 	temperature *float32
 }
 
-func NewGeminiSimple(apiKey, model string, maxTokens int, isJSON bool, temperature *float32) *GeminiSimpleLLM {
+func NewGeminiSimpleOld(apiKey, model string, maxTokens int, isJSON bool, temperature *float32) *GeminiSimpleLLM {
 	return &GeminiSimpleLLM{
 		apiKey:      apiKey,
 		model:       model,
