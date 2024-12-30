@@ -168,17 +168,20 @@ func (g *Gemini) GenerateWithMessages(ctx context.Context, messages []Message) (
 		gemini.Temperature = g.temperature
 	}
 	gemini.GenerationConfig.SetMaxOutputTokens(int32(g.maxTokens))
-
-	// if systemPrompt != "" {
-	// 	gemini.SystemInstruction = genai.NewUserContent(genai.Text(systemPrompt))
-	// }
-
 	// Start chat and set history
 	cs := gemini.StartChat()
 
 	// Convert ChatMessages to genai.Content with roles
 	var history []*genai.Content
 	for _, msg := range messages {
+
+		if msg.Role == RoleSystem {
+			gemini.SystemInstruction = &genai.Content{
+				Parts: []genai.Part{genai.Text(msg.Content)},
+			}
+			continue
+		}
+
 		var parts []genai.Part
 
 		if msg.Image != nil {
