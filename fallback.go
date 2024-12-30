@@ -17,7 +17,7 @@ func NewFallbackGen(gens []LLMGen, errorCallback func(error)) *FallbackGen {
 	return &FallbackGen{gens: gens, errorCallback: errorCallback}
 }
 
-func (f *FallbackGen) generateWithFallback(ctx context.Context, fn func(gen LLMGen) (string, error)) (string, error) {
+func (f *FallbackGen) generateWithFallback(fn func(gen LLMGen) (string, error)) (string, error) {
 	var lastErr error
 	for _, gen := range f.gens {
 		response, err := fn(gen)
@@ -34,7 +34,7 @@ func (f *FallbackGen) generateWithFallback(ctx context.Context, fn func(gen LLMG
 }
 
 func (f *FallbackGen) Generate(ctx context.Context, systemPrompt, prompt string) (string, error) {
-	return f.generateWithFallback(ctx, func(gen LLMGen) (string, error) {
+	return f.generateWithFallback(func(gen LLMGen) (string, error) {
 		return gen.Generate(ctx, systemPrompt, prompt)
 	})
 }
@@ -113,13 +113,13 @@ func (f *FallbackGen) GetModel() string {
 }
 
 func (f *FallbackGen) GenerateFromImage(ctx context.Context, prompt string, image io.Reader, mimeType MimeType) (string, error) {
-	return f.generateWithFallback(ctx, func(gen LLMGen) (string, error) {
+	return f.generateWithFallback(func(gen LLMGen) (string, error) {
 		return gen.GenerateFromImage(ctx, prompt, image, mimeType)
 	})
 }
 
 func (f *FallbackGen) GenerateFromImages(ctx context.Context, prompt string, images []io.Reader, mimeTypes []MimeType) (string, error) {
-	return f.generateWithFallback(ctx, func(gen LLMGen) (string, error) {
+	return f.generateWithFallback(func(gen LLMGen) (string, error) {
 		return gen.GenerateFromImages(ctx, prompt, images, mimeTypes)
 	})
 }
