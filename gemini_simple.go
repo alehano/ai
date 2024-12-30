@@ -135,11 +135,11 @@ func (g *GeminiSimpleLLM) GetModel() string {
 	return g.model
 }
 
-func (g *GeminiSimpleLLM) GenerateFromImage(ctx context.Context, prompt string, image io.Reader, mimeType MimeType) (string, error) {
-	return g.GenerateFromImages(ctx, prompt, []io.Reader{image}, []MimeType{mimeType})
+func (g *GeminiSimpleLLM) GenerateWithImage(ctx context.Context, prompt string, image io.Reader, mimeType MimeType) (string, error) {
+	return g.GenerateWithImages(ctx, prompt, []io.Reader{image}, []MimeType{mimeType})
 }
 
-func (g *GeminiSimpleLLM) GenerateFromImages(ctx context.Context, prompt string, images []io.Reader, mimeTypes []MimeType) (string, error) {
+func (g *GeminiSimpleLLM) GenerateWithImages(ctx context.Context, prompt string, images []io.Reader, mimeTypes []MimeType) (string, error) {
 	if len(images) != len(mimeTypes) {
 		return "", fmt.Errorf("number of images and mime types must match")
 	}
@@ -155,11 +155,11 @@ func (g *GeminiSimpleLLM) GenerateFromImages(ctx context.Context, prompt string,
 		msg.MimeType = mimeTypes[i]
 	}
 
-	// Use GenerateFromChat with a single message
-	return g.GenerateFromChat(ctx, []Message{msg})
+	// Use GenerateWithMessages with a single message
+	return g.GenerateWithMessages(ctx, []Message{msg})
 }
 
-func (g *GeminiSimpleLLM) GenerateFromChat(ctx context.Context, messages []Message) (string, error) {
+func (g *GeminiSimpleLLM) GenerateWithMessages(ctx context.Context, messages []Message) (string, error) {
 	client, err := genai.NewClient(ctx, option.WithAPIKey(g.apiKey))
 	if err != nil {
 		return "", fmt.Errorf("failed to create Gemini client: %v", err)

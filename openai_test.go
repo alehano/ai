@@ -36,12 +36,12 @@ func TestOpenAIGen(t *testing.T) {
 	// llmGenOpenAI := NewLambdaLabClient(cfg.APIKey, cfg.Model, int64(cfg.DefaultTokesLimit), 1.0, false)
 	llmGenOpenAI := NewXAIClient(cfg.APIKey, cfg.Model, int64(cfg.DefaultTokesLimit), 1.0, false)
 
-	res, err := llmGenOpenAI.GenerateFromChat(context.Background(), []Message{
-		// {
-		// 	Role:     RoleSystem,
-		// 	Image:    image,
-		// 	MimeType: MimeTypeJPEG,
-		// },
+	res, err := llmGenOpenAI.GenerateWithMessages(context.Background(), []Message{
+		{
+			Role:     RoleSystem,
+			Image:    image,
+			MimeType: MimeTypeJPEG,
+		},
 		{
 			Role:    RoleUser,
 			Content: "Is it healthy?",

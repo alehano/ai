@@ -43,8 +43,6 @@ func NewXAIClient(apiKey string, model string, maxTokens int64, temperature floa
 	return NewOpenAICompatibleClient("https://api.x.ai/v1/", apiKey, model, maxTokens, temperature, isJson)
 }
 
-// TODO: Add Lambdalab, Grok, Groq
-
 func NewOpenAICompatibleClient(baseURL, apiKey string, model string, maxTokens int64, temperature float64, isJson bool) *OpenAIClient {
 	client := openai.NewClient(
 		option.WithAPIKey(apiKey),
@@ -118,11 +116,11 @@ func (o *OpenAIClient) GetModel() string {
 	return o.model
 }
 
-func (o *OpenAIClient) GenerateFromImage(ctx context.Context, prompt string, image io.Reader, mimeType MimeType) (string, error) {
-	return o.GenerateFromImages(ctx, prompt, []io.Reader{image}, []MimeType{mimeType})
+func (o *OpenAIClient) GenerateWithImage(ctx context.Context, prompt string, image io.Reader, mimeType MimeType) (string, error) {
+	return o.GenerateWithImages(ctx, prompt, []io.Reader{image}, []MimeType{mimeType})
 }
 
-func (o *OpenAIClient) GenerateFromImages(ctx context.Context, prompt string, images []io.Reader, mimeTypes []MimeType) (string, error) {
+func (o *OpenAIClient) GenerateWithImages(ctx context.Context, prompt string, images []io.Reader, mimeTypes []MimeType) (string, error) {
 	if len(images) != len(mimeTypes) {
 		return "", fmt.Errorf("number of images and mime types must match")
 	}
@@ -138,10 +136,10 @@ func (o *OpenAIClient) GenerateFromImages(ctx context.Context, prompt string, im
 		}
 	}
 
-	return o.GenerateFromChat(ctx, messages)
+	return o.GenerateWithMessages(ctx, messages)
 }
 
-func (o *OpenAIClient) GenerateFromChat(ctx context.Context, messages []Message) (string, error) {
+func (o *OpenAIClient) GenerateWithMessages(ctx context.Context, messages []Message) (string, error) {
 	chatMessages := make([]openai.ChatCompletionMessageParamUnion, len(messages))
 
 	for i, msg := range messages {

@@ -137,11 +137,11 @@ func (g *GeminiLLM) GetModel() string {
 	return g.model
 }
 
-func (g *GeminiLLM) GenerateFromImage(ctx context.Context, prompt string, image io.Reader, mimeType MimeType) (string, error) {
-	return g.GenerateFromImages(ctx, prompt, []io.Reader{image}, []MimeType{mimeType})
+func (g *GeminiLLM) GenerateWithImage(ctx context.Context, prompt string, image io.Reader, mimeType MimeType) (string, error) {
+	return g.GenerateWithImages(ctx, prompt, []io.Reader{image}, []MimeType{mimeType})
 }
 
-func (g *GeminiLLM) GenerateFromImages(ctx context.Context, prompt string, images []io.Reader, mimeTypes []MimeType) (string, error) {
+func (g *GeminiLLM) GenerateWithImages(ctx context.Context, prompt string, images []io.Reader, mimeTypes []MimeType) (string, error) {
 	if len(images) != len(mimeTypes) {
 		return "", fmt.Errorf("number of images and mime types must match")
 	}
@@ -157,11 +157,11 @@ func (g *GeminiLLM) GenerateFromImages(ctx context.Context, prompt string, image
 		msg.MimeType = mimeTypes[i]
 	}
 
-	// Use GenerateFromChat with a single message
-	return g.GenerateFromChat(ctx, []Message{msg})
+	// Use GenerateWithMessages with a single message
+	return g.GenerateWithMessages(ctx, []Message{msg})
 }
 
-func (g *GeminiLLM) GenerateFromChat(ctx context.Context, messages []Message) (string, error) {
+func (g *GeminiLLM) GenerateWithMessages(ctx context.Context, messages []Message) (string, error) {
 	gemini := g.client.GenerativeModel(g.model)
 	gemini.SafetySettings = g.safetySettings
 	if g.temperature != nil {

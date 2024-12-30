@@ -150,11 +150,11 @@ func (o *OpenAIAltGen) GetModel() string {
 	return o.model
 }
 
-func (o *OpenAIAltGen) GenerateFromImage(ctx context.Context, prompt string, image io.Reader, mimeType MimeType) (string, error) {
-	return o.GenerateFromImages(ctx, prompt, []io.Reader{image}, []MimeType{mimeType})
+func (o *OpenAIAltGen) GenerateWithImage(ctx context.Context, prompt string, image io.Reader, mimeType MimeType) (string, error) {
+	return o.GenerateWithImages(ctx, prompt, []io.Reader{image}, []MimeType{mimeType})
 }
 
-func (o *OpenAIAltGen) GenerateFromImages(ctx context.Context, prompt string, images []io.Reader, mimeTypes []MimeType) (string, error) {
+func (o *OpenAIAltGen) GenerateWithImages(ctx context.Context, prompt string, images []io.Reader, mimeTypes []MimeType) (string, error) {
 	if len(images) != len(mimeTypes) {
 		return "", fmt.Errorf("number of images and mime types must match")
 	}
@@ -169,10 +169,10 @@ func (o *OpenAIAltGen) GenerateFromImages(ctx context.Context, prompt string, im
 		msg.MimeType = mimeTypes[i]
 	}
 
-	return o.GenerateFromChat(ctx, []Message{msg})
+	return o.GenerateWithMessages(ctx, []Message{msg})
 }
 
-func (o *OpenAIAltGen) GenerateFromChat(ctx context.Context, messages []Message) (string, error) {
+func (o *OpenAIAltGen) GenerateWithMessages(ctx context.Context, messages []Message) (string, error) {
 	var chatMessages []openai.ChatCompletionMessage
 
 	for _, msg := range messages {

@@ -149,11 +149,11 @@ func (a *AnthropicGen) GetModel() string {
 	return a.model
 }
 
-func (a *AnthropicGen) GenerateFromImage(ctx context.Context, prompt string, image io.Reader, mimeType MimeType) (string, error) {
-	return a.GenerateFromImages(ctx, prompt, []io.Reader{image}, []MimeType{mimeType})
+func (a *AnthropicGen) GenerateWithImage(ctx context.Context, prompt string, image io.Reader, mimeType MimeType) (string, error) {
+	return a.GenerateWithImages(ctx, prompt, []io.Reader{image}, []MimeType{mimeType})
 }
 
-func (a *AnthropicGen) GenerateFromImages(ctx context.Context, prompt string, images []io.Reader, mimeTypes []MimeType) (string, error) {
+func (a *AnthropicGen) GenerateWithImages(ctx context.Context, prompt string, images []io.Reader, mimeTypes []MimeType) (string, error) {
 	if len(images) != len(mimeTypes) {
 		return "", fmt.Errorf("number of images and mime types must match")
 	}
@@ -170,11 +170,11 @@ func (a *AnthropicGen) GenerateFromImages(ctx context.Context, prompt string, im
 		msg.MimeType = mimeTypes[i]
 	}
 
-	// Use GenerateFromChat with a single message
-	return a.GenerateFromChat(ctx, []Message{msg})
+	// Use GenerateWithMessages with a single message
+	return a.GenerateWithMessages(ctx, []Message{msg})
 }
 
-func (a *AnthropicGen) GenerateFromChat(ctx context.Context, messages []Message) (string, error) {
+func (a *AnthropicGen) GenerateWithMessages(ctx context.Context, messages []Message) (string, error) {
 	var anthropicMessages []anthropic.Message
 
 	for _, msg := range messages {

@@ -42,13 +42,11 @@ type LLMGen interface {
 	// GetModel returns the name of the current model
 	GetModel() string
 
-	// TODO: test
+	// GenerateWithImage generates text from an image
+	GenerateWithImage(ctx context.Context, prompt string, image io.Reader, mimeType MimeType) (string, error)
 
-	// GenerateFromImage generates text from an image
-	GenerateFromImage(ctx context.Context, prompt string, image io.Reader, mimeType MimeType) (string, error)
+	// GenerateWithImages generates text from multiple images
+	GenerateWithImages(ctx context.Context, prompt string, images []io.Reader, mimeTypes []MimeType) (string, error)
 
-	// GenerateFromImages generates text from multiple images
-	GenerateFromImages(ctx context.Context, prompt string, images []io.Reader, mimeTypes []MimeType) (string, error)
-
-	GenerateFromChat(ctx context.Context, messages []Message) (string, error)
+	GenerateWithMessages(ctx context.Context, messages []Message) (string, error)
 }

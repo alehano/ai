@@ -112,22 +112,22 @@ func (f *FallbackGen) GetModel() string {
 	return f.currentModel
 }
 
-func (f *FallbackGen) GenerateFromImage(ctx context.Context, prompt string, image io.Reader, mimeType MimeType) (string, error) {
+func (f *FallbackGen) GenerateWithImage(ctx context.Context, prompt string, image io.Reader, mimeType MimeType) (string, error) {
 	return f.generateWithFallback(func(gen LLMGen) (string, error) {
-		return gen.GenerateFromImage(ctx, prompt, image, mimeType)
+		return gen.GenerateWithImage(ctx, prompt, image, mimeType)
 	})
 }
 
-func (f *FallbackGen) GenerateFromImages(ctx context.Context, prompt string, images []io.Reader, mimeTypes []MimeType) (string, error) {
+func (f *FallbackGen) GenerateWithImages(ctx context.Context, prompt string, images []io.Reader, mimeTypes []MimeType) (string, error) {
 	return f.generateWithFallback(func(gen LLMGen) (string, error) {
-		return gen.GenerateFromImages(ctx, prompt, images, mimeTypes)
+		return gen.GenerateWithImages(ctx, prompt, images, mimeTypes)
 	})
 }
 
-func (f *FallbackGen) GenerateFromChat(ctx context.Context, messages []Message) (string, error) {
+func (f *FallbackGen) GenerateWithMessages(ctx context.Context, messages []Message) (string, error) {
 	var lastErr error
 	for _, gen := range f.gens {
-		response, err := gen.GenerateFromChat(ctx, messages)
+		response, err := gen.GenerateWithMessages(ctx, messages)
 		if err == nil {
 			f.currentModel = gen.GetModel()
 			return response, nil
