@@ -13,7 +13,7 @@ import (
 	"google.golang.org/api/option"
 )
 
-type Gemini struct {
+type Google struct {
 	client         *genai.Client
 	model          string
 	safetySettings []*genai.SafetySetting
@@ -38,12 +38,12 @@ func validateImageSize(image io.Reader) (io.Reader, error) {
 	return bytes.NewReader(buf.Bytes()), nil
 }
 
-func NewGemini(projectID, location, model string, maxTokens int, temperature *float32, opts ...option.ClientOption) (*Gemini, error) {
+func NewGoogle(projectID, location, model string, maxTokens int, temperature *float32, opts ...option.ClientOption) (*Google, error) {
 	client, err := genai.NewClient(context.Background(), projectID, location, opts...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create Gemini client: %v", err)
+		return nil, fmt.Errorf("failed to create Google client: %v", err)
 	}
-	return &Gemini{
+	return &Google{
 		client:      client,
 		model:       model,
 		maxTokens:   maxTokens,
@@ -51,18 +51,18 @@ func NewGemini(projectID, location, model string, maxTokens int, temperature *fl
 	}, nil
 }
 
-func (g *Gemini) Generate(ctx context.Context, systemPrompt, prompt string) (string, error) {
-	gemini := g.client.GenerativeModel(g.model)
-	gemini.SafetySettings = g.safetySettings
+func (g *Google) Generate(ctx context.Context, systemPrompt, prompt string) (string, error) {
+	gModel := g.client.GenerativeModel(g.model)
+	gModel.SafetySettings = g.safetySettings
 	if g.temperature != nil {
-		gemini.Temperature = g.temperature
+		gModel.Temperature = g.temperature
 	}
-	gemini.GenerationConfig.SetMaxOutputTokens(int32(g.maxTokens))
-	gemini.SystemInstruction = &genai.Content{
+	gModel.GenerationConfig.SetMaxOutputTokens(int32(g.maxTokens))
+	gModel.SystemInstruction = &genai.Content{
 		Parts: []genai.Part{genai.Text(systemPrompt)},
 	}
 
-	resp, err := gemini.GenerateContent(ctx, genai.Text(prompt))
+	resp, err := gModel.GenerateContent(ctx, genai.Text(prompt))
 	if err != nil {
 		return "", fmt.Errorf("failed to generate content: %v", err)
 	}
@@ -81,18 +81,18 @@ func (g *Gemini) Generate(ctx context.Context, systemPrompt, prompt string) (str
 	return res.String(), nil
 }
 
-func (g *Gemini) GenerateStream(ctx context.Context, systemPrompt, prompt string, resultCh chan string, doneCh chan bool, errCh chan error) {
-	gemini := g.client.GenerativeModel(g.model)
-	gemini.SafetySettings = g.safetySettings
+func (g *Google) GenerateStream(ctx context.Context, systemPrompt, prompt string, resultCh chan string, doneCh chan bool, errCh chan error) {
+	gModel := g.client.GenerativeModel(g.model)
+	gModel.SafetySettings = g.safetySettings
 	if g.temperature != nil {
-		gemini.Temperature = g.temperature
+		gModel.Temperature = g.temperature
 	}
-	gemini.GenerationConfig.SetMaxOutputTokens(int32(g.maxTokens))
-	gemini.SystemInstruction = &genai.Content{
+	gModel.GenerationConfig.SetMaxOutputTokens(int32(g.maxTokens))
+	gModel.SystemInstruction = &genai.Content{
 		Parts: []genai.Part{genai.Text(systemPrompt)},
 	}
 
-	iter := gemini.GenerateContentStream(ctx, genai.Text(prompt))
+	iter := gModel.GenerateContentStream(ctx, genai.Text(prompt))
 
 	go func() {
 		for {
@@ -133,15 +133,15 @@ func (g *Gemini) GenerateStream(ctx context.Context, systemPrompt, prompt string
 	}()
 }
 
-func (g *Gemini) GetModel() string {
+func (g *Google) GetModel() string {
 	return g.model
 }
 
-func (g *Gemini) GenerateWithImage(ctx context.Context, prompt string, image io.Reader, mimeType MimeType) (string, error) {
+func (g *Google) GenerateWithImage(ctx context.Context, prompt string, image io.Reader, mimeType MimeType) (string, error) {
 	return g.GenerateWithImages(ctx, prompt, []io.Reader{image}, []MimeType{mimeType})
 }
 
-func (g *Gemini) GenerateWithImages(ctx context.Context, prompt string, images []io.Reader, mimeTypes []MimeType) (string, error) {
+func (g *Google) GenerateWithImages(ctx context.Context, prompt string, images []io.Reader, mimeTypes []MimeType) (string, error) {
 	if len(images) != len(mimeTypes) {
 		return "", fmt.Errorf("number of images and mime types must match")
 	}
@@ -161,22 +161,22 @@ func (g *Gemini) GenerateWithImages(ctx context.Context, prompt string, images [
 	return g.GenerateWithMessages(ctx, []Message{msg})
 }
 
-func (g *Gemini) GenerateWithMessages(ctx context.Context, messages []Message) (string, error) {
-	gemini := g.client.GenerativeModel(g.model)
-	gemini.SafetySettings = g.safetySettings
+func (g *Google) GenerateWithMessages(ctx context.Context, messages []Message) (string, error) {
+	gModel := g.client.GenerativeModel(g.model)
+	gModel.SafetySettings = g.safetySettings
 	if g.temperature != nil {
-		gemini.Temperature = g.temperature
+		gModel.Temperature = g.temperature
 	}
-	gemini.GenerationConfig.SetMaxOutputTokens(int32(g.maxTokens))
+	gModel.GenerationConfig.SetMaxOutputTokens(int32(g.maxTokens))
 	// Start chat and set history
-	cs := gemini.StartChat()
+	cs := gModel.StartChat()
 
 	// Convert ChatMessages to genai.Content with roles
 	var history []*genai.Content
 	for _, msg := range messages {
 
 		if msg.Role == RoleSystem {
-			gemini.SystemInstruction = &genai.Content{
+			gModel.SystemInstruction = &genai.Content{
 				Parts: []genai.Part{genai.Text(msg.Content)},
 			}
 			continue

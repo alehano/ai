@@ -12,9 +12,9 @@ import (
 	"google.golang.org/api/option"
 )
 
-// GeminiSimpleLLM is a simple Gemini client that uses the official Google Gemini API
-// Deprecated: use GeminiClient (open ai compatible) instead
-type GeminiSimpleLLM struct {
+// GoogleSimpleLLM is a simple Google client that uses the official Google Gemini API
+// Deprecated: use Open AI compatible client instead
+type GoogleSimpleLLM struct {
 	apiKey      string
 	model       string
 	maxTokens   int
@@ -22,8 +22,9 @@ type GeminiSimpleLLM struct {
 	temperature *float32
 }
 
-func NewGeminiSimpleOld(apiKey, model string, maxTokens int, isJSON bool, temperature *float32) *GeminiSimpleLLM {
-	return &GeminiSimpleLLM{
+// Deprecated: use Open AI compatible client instead
+func NewGoogleSimpleAlt(apiKey, model string, maxTokens int, isJSON bool, temperature *float32) *GoogleSimpleLLM {
+	return &GoogleSimpleLLM{
 		apiKey:      apiKey,
 		model:       model,
 		maxTokens:   maxTokens,
@@ -32,10 +33,10 @@ func NewGeminiSimpleOld(apiKey, model string, maxTokens int, isJSON bool, temper
 	}
 }
 
-func (g *GeminiSimpleLLM) Generate(ctx context.Context, systemPrompt, prompt string) (string, error) {
+func (g *GoogleSimpleLLM) Generate(ctx context.Context, systemPrompt, prompt string) (string, error) {
 	client, err := genai.NewClient(ctx, option.WithAPIKey(g.apiKey))
 	if err != nil {
-		return "", fmt.Errorf("failed to create Gemini client: %v", err)
+		return "", fmt.Errorf("failed to create Google client: %v", err)
 	}
 	defer client.Close()
 
@@ -73,10 +74,10 @@ func (g *GeminiSimpleLLM) Generate(ctx context.Context, systemPrompt, prompt str
 }
 
 // TODO: test it
-func (g *GeminiSimpleLLM) GenerateStream(ctx context.Context, systemPrompt, prompt string, resultCh chan string, doneCh chan bool, errCh chan error) {
+func (g *GoogleSimpleLLM) GenerateStream(ctx context.Context, systemPrompt, prompt string, resultCh chan string, doneCh chan bool, errCh chan error) {
 	client, err := genai.NewClient(ctx, option.WithAPIKey(g.apiKey))
 	if err != nil {
-		errCh <- fmt.Errorf("failed to create Gemini client: %v", err)
+		errCh <- fmt.Errorf("failed to create Google client: %v", err)
 		return
 	}
 	defer client.Close()
@@ -131,15 +132,15 @@ func (g *GeminiSimpleLLM) GenerateStream(ctx context.Context, systemPrompt, prom
 	}()
 }
 
-func (g *GeminiSimpleLLM) GetModel() string {
+func (g *GoogleSimpleLLM) GetModel() string {
 	return g.model
 }
 
-func (g *GeminiSimpleLLM) GenerateWithImage(ctx context.Context, prompt string, image io.Reader, mimeType MimeType) (string, error) {
+func (g *GoogleSimpleLLM) GenerateWithImage(ctx context.Context, prompt string, image io.Reader, mimeType MimeType) (string, error) {
 	return g.GenerateWithImages(ctx, prompt, []io.Reader{image}, []MimeType{mimeType})
 }
 
-func (g *GeminiSimpleLLM) GenerateWithImages(ctx context.Context, prompt string, images []io.Reader, mimeTypes []MimeType) (string, error) {
+func (g *GoogleSimpleLLM) GenerateWithImages(ctx context.Context, prompt string, images []io.Reader, mimeTypes []MimeType) (string, error) {
 	if len(images) != len(mimeTypes) {
 		return "", fmt.Errorf("number of images and mime types must match")
 	}
@@ -159,10 +160,10 @@ func (g *GeminiSimpleLLM) GenerateWithImages(ctx context.Context, prompt string,
 	return g.GenerateWithMessages(ctx, []Message{msg})
 }
 
-func (g *GeminiSimpleLLM) GenerateWithMessages(ctx context.Context, messages []Message) (string, error) {
+func (g *GoogleSimpleLLM) GenerateWithMessages(ctx context.Context, messages []Message) (string, error) {
 	client, err := genai.NewClient(ctx, option.WithAPIKey(g.apiKey))
 	if err != nil {
-		return "", fmt.Errorf("failed to create Gemini client: %v", err)
+		return "", fmt.Errorf("failed to create Google client: %v", err)
 	}
 	defer client.Close()
 

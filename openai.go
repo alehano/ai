@@ -22,7 +22,7 @@ func NewOpenAI(apiKey string, model string, maxTokens int64, temperature float64
 	return NewOpenAICompatible("https://api.openai.com/v1/", apiKey, model, maxTokens, temperature, isJson)
 }
 
-func NewGeminiSimple(apiKey string, model string, maxTokens int64, temperature float64, isJson bool) *OpenAI {
+func NewGoogleSimple(apiKey string, model string, maxTokens int64, temperature float64, isJson bool) *OpenAI {
 	return NewOpenAICompatible("https://generativelanguage.googleapis.com/v1beta/openai/", apiKey, model, maxTokens, temperature, isJson)
 }
 
