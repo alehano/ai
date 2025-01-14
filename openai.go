@@ -125,18 +125,28 @@ func (o *OpenAI) GenerateWithImages(ctx context.Context, prompt string, images [
 		return "", fmt.Errorf("number of images and mime types must match")
 	}
 
-	// Create chat messages with images
-	messages := make([]Message, len(images))
-	for i, image := range images {
-		messages[i] = Message{
-			Role:     RoleUser,
-			Content:  prompt,
-			Image:    image,
-			MimeType: mimeTypes[i],
-		}
+	if prompt == "" {
+		return "", fmt.Errorf("prompt is required")
 	}
 
-	return o.GenerateWithMessages(ctx, messages)
+	msgs := []Message{}
+
+	// Add images to the message
+	for i, image := range images {
+		msgs = append(msgs, Message{
+			Role:     RoleUser,
+			Image:    image,
+			MimeType: mimeTypes[i],
+		})
+	}
+
+	msgs = append(msgs, Message{
+		Role:    RoleUser,
+		Content: prompt,
+	})
+
+	// Use GenerateWithMessages with a single message
+	return o.GenerateWithMessages(ctx, msgs)
 }
 
 func (o *OpenAI) GenerateWithMessages(ctx context.Context, messages []Message) (string, error) {

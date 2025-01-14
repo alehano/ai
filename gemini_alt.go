@@ -145,19 +145,28 @@ func (g *GoogleSimpleLLM) GenerateWithImages(ctx context.Context, prompt string,
 		return "", fmt.Errorf("number of images and mime types must match")
 	}
 
-	// Create a single chat message with the prompt and images
-	msg := Message{
-		Content: prompt,
+	if prompt == "" {
+		return "", fmt.Errorf("prompt is required")
 	}
+
+	msgs := []Message{}
 
 	// Add images to the message
 	for i, image := range images {
-		msg.Image = image
-		msg.MimeType = mimeTypes[i]
+		msgs = append(msgs, Message{
+			Role:     RoleSystem,
+			Image:    image,
+			MimeType: mimeTypes[i],
+		})
 	}
 
+	msgs = append(msgs, Message{
+		Role:    RoleUser,
+		Content: prompt,
+	})
+
 	// Use GenerateWithMessages with a single message
-	return g.GenerateWithMessages(ctx, []Message{msg})
+	return g.GenerateWithMessages(ctx, msgs)
 }
 
 func (g *GoogleSimpleLLM) GenerateWithMessages(ctx context.Context, messages []Message) (string, error) {

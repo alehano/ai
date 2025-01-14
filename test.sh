@@ -5,18 +5,13 @@ if [ -f .env ]; then
     export $(grep -v '^#' .env | xargs)
 fi
 
-# Set environment variables
-export GOOGLE_LOGGING_PROJECT_ID=${GOOGLE_LOGGING_PROJECT_ID}
-export GOOGLE_LOGGING_LOG_NAME=${GOOGLE_LOGGING_LOG_NAME}
-export GOOGLE_PROJECT_ID=${GOOGLE_PROJECT_ID}
-export GOOGLE_LOCATION=${GOOGLE_LOCATION}
+
+export GOOGLE_API_KEY=${GOOGLE_API_KEY}
 export GOOGLE_MODEL=${GOOGLE_MODEL}
-export GOOGLE_TOKEN_LIMIT=${GOOGLE_TOKEN_LIMIT}
-export GOOGLE_TEMPERATURE=${GOOGLE_TEMPERATURE}
-export GOOGLE_APPLICATION_CREDENTIALS=${GOOGLE_APPLICATION_CREDENTIALS}
 
 export OPENAI_API_KEY=${OPENAI_API_KEY}
 export OPENAI_MODEL=${OPENAI_MODEL}
+
 export ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
 export ANTHROPIC_MODEL=${ANTHROPIC_MODEL}
 
@@ -26,6 +21,19 @@ export GROQ_MODEL=${GROQ_MODEL}
 export LAMBDA_LAB_API_KEY=${LAMBDA_LAB_API_KEY}
 export LAMBDA_LAB_MODEL=${LAMBDA_LAB_MODEL}
 
-export GEMINI_API_KEY=${GEMINI_API_KEY}
-
-go test -v ./...
+# Check if a specific test function is provided
+if [ -n "$1" ]; then
+    go test -v -run $1 ./...
+else
+    echo "No test function specified. Running ALL tests."
+    echo "To run specific tests: ./test.sh TestFunctionName"
+    echo -n "Continue? [y/N] "
+    read answer
+    
+    if [ "$answer" != "${answer#[Yy]}" ]; then
+        go test -v ./...
+    else
+        echo "Test execution cancelled"
+        exit 0
+    fi
+fi
