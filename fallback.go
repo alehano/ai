@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -112,15 +113,61 @@ func (f *FallbackLLM) GetModel() string {
 	return f.currentModel
 }
 
+// Add a helper function to handle buffering of images
+func bufferImage(image io.Reader) (*bytes.Buffer, error) {
+	if image == nil {
+		return nil, nil
+	}
+	buf := new(bytes.Buffer)
+	if _, err := io.Copy(buf, image); err != nil {
+		return nil, fmt.Errorf("failed to copy image data: %w", err)
+	}
+	return buf, nil
+}
+
+// Add a helper function to create new readers from buffers
+func newReadersFromBuffers(bufs []*bytes.Buffer) []io.Reader {
+	readers := make([]io.Reader, len(bufs))
+	for i, buf := range bufs {
+		if buf != nil {
+			readers[i] = bytes.NewReader(buf.Bytes())
+		}
+	}
+	return readers
+}
+
 func (f *FallbackLLM) GenerateWithImage(ctx context.Context, prompt string, image io.Reader, mimeType MimeType) (string, error) {
+	imageBuf, err := bufferImage(image)
+	if err != nil {
+		return "", err
+	}
+
 	return f.generateWithFallback(func(gen LLM) (string, error) {
-		return gen.GenerateWithImage(ctx, prompt, image, mimeType)
+		var currentImageReader io.Reader
+		if imageBuf != nil {
+			currentImageReader = bytes.NewReader(imageBuf.Bytes())
+		}
+		return gen.GenerateWithImage(ctx, prompt, currentImageReader, mimeType)
 	})
 }
 
 func (f *FallbackLLM) GenerateWithImages(ctx context.Context, prompt string, images []io.Reader, mimeTypes []MimeType) (string, error) {
+	if len(images) != len(mimeTypes) {
+		return "", fmt.Errorf("number of images (%d) does not match number of mime types (%d)", len(images), len(mimeTypes))
+	}
+
+	// Buffer all images at once
+	imageBufs := make([]*bytes.Buffer, len(images))
+	for i, img := range images {
+		buf, err := bufferImage(img)
+		if err != nil {
+			return "", fmt.Errorf("failed to buffer image %d: %w", i, err)
+		}
+		imageBufs[i] = buf
+	}
+
 	return f.generateWithFallback(func(gen LLM) (string, error) {
-		return gen.GenerateWithImages(ctx, prompt, images, mimeTypes)
+		return gen.GenerateWithImages(ctx, prompt, newReadersFromBuffers(imageBufs), mimeTypes)
 	})
 }
 

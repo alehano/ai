@@ -14,23 +14,31 @@ func TestGenerateWithImage(t *testing.T) {
 	}
 	mimeType := "image/webp"
 
-	cfg := struct {
-		APIKey            string
-		Model             string
-		DefaultTokesLimit int
-	}{
-		APIKey: os.Getenv("GOOGLE_API_KEY"),
-		Model:  os.Getenv("GOOGLE_MODEL"),
-		// APIKey:            os.Getenv("OPENAI_API_KEY"),
-		// Model:             os.Getenv("OPENAI_MODEL"),
-		// APIKey:            os.Getenv("ANTHROPIC_API_KEY"),
-		// Model:             os.Getenv("ANTHROPIC_MODEL"),
-		DefaultTokesLimit: 4000,
-	}
-
-	llm := NewGoogleSimple(cfg.APIKey, cfg.Model, int64(cfg.DefaultTokesLimit), 1.0, false)
-	// llm := NewOpenAI(cfg.APIKey, cfg.Model, int64(cfg.DefaultTokesLimit), 1.0, false)
+	llm := NewGoogleSimple(os.Getenv("GOOGLE_API_KEY"), os.Getenv("GOOGLE_MODEL"), 4000, 1.0, false)
+	// llm := NewOpenAI(os.Getenv("OPENAI_API_KEY"), os.Getenv("OPENAI_MODEL"), 4000, 1.0, false)
 	// llm := NewAnthropic(cfg.APIKey, cfg.Model, int(cfg.DefaultTokesLimit), 1.0, false)
+
+	res, err := llm.GenerateWithImage(context.Background(), "describe the image", bytes.NewReader(imgData), MimeType(mimeType))
+	if err != nil {
+		t.Fatalf("Error generating from image: %v", err)
+	}
+	t.Logf("AI %s response: %v", llm.GetModel(), res)
+
+}
+
+func TestGenerateWithImageWithFallback(t *testing.T) {
+	imgData, err := os.ReadFile("test/test.webp")
+	if err != nil {
+		t.Fatalf("Error reading image: %v", err)
+	}
+	mimeType := "image/webp"
+
+	llmGemini := NewGoogleSimple("BADKEY", os.Getenv("GOOGLE_MODEL"), 4000, 1.0, false)
+	llmOpenAI := NewOpenAI(os.Getenv("OPENAI_API_KEY"), os.Getenv("OPENAI_MODEL"), 4000, 1.0, false)
+
+	llm := NewFallbackLLM([]LLM{llmGemini, llmOpenAI}, func(err error) {
+		t.Logf("Error generating from image: %v", err)
+	})
 
 	res, err := llm.GenerateWithImage(context.Background(), "describe the image", bytes.NewReader(imgData), MimeType(mimeType))
 	if err != nil {
