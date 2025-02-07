@@ -31,3 +31,5 @@ data
 google-credentials.json
 
 bin/
+
+google-credentials.json
