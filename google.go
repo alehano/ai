@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"sync"
+	"sync/atomic"
 
 	"cloud.google.com/go/vertexai/genai"
 	"google.golang.org/api/iterator"
@@ -14,11 +16,13 @@ import (
 )
 
 type Google struct {
-	client         *genai.Client
+	clients        []*genai.Client
+	clientIndex    int32
 	model          string
 	safetySettings []*genai.SafetySetting
 	maxTokens      int
 	temperature    *float32
+	mu             sync.RWMutex
 }
 
 const maxImageSize = 4 * 1024 * 1024 // 4MB
@@ -38,21 +42,60 @@ func validateImageSize(image io.Reader) (io.Reader, error) {
 	return bytes.NewReader(buf.Bytes()), nil
 }
 
-func NewGoogle(projectID, location, model string, maxTokens int, temperature *float32, opts ...option.ClientOption) (*Google, error) {
-	client, err := genai.NewClient(context.Background(), projectID, location, opts...)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create Google client: %v", err)
+func NewGoogle(projectID string, locations []string, model string, maxTokens int, temperature *float32, opts ...option.ClientOption) (*Google, error) {
+	var clients []*genai.Client
+	for _, location := range locations {
+		client, err := genai.NewClient(context.Background(), projectID, location, opts...)
+		if err != nil {
+			// Clean up any clients we've already created
+			for _, c := range clients {
+				c.Close()
+			}
+			return nil, fmt.Errorf("failed to create Google client for location %s: %v", location, err)
+		}
+		clients = append(clients, client)
 	}
+
+	if len(clients) == 0 {
+		return nil, fmt.Errorf("no clients created: empty locations list")
+	}
+
 	return &Google{
-		client:      client,
+		clients:     clients,
 		model:       model,
 		maxTokens:   maxTokens,
 		temperature: temperature,
 	}, nil
 }
 
+func (g *Google) SetSafetySettings(settings []*genai.SafetySetting) {
+	g.mu.Lock()
+	defer g.mu.Unlock()
+	g.safetySettings = settings
+}
+
+func (g *Google) getNextClient() *genai.Client {
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+
+	if len(g.clients) == 0 {
+		return nil
+	}
+	if len(g.clients) == 1 {
+		return g.clients[0]
+	}
+
+	// Use atomic operation for thread-safe counter
+	index := atomic.AddInt32(&g.clientIndex, 1)
+	if index >= int32(len(g.clients)) {
+		atomic.StoreInt32(&g.clientIndex, 0)
+		index = 0
+	}
+	return g.clients[index]
+}
+
 func (g *Google) Generate(ctx context.Context, systemPrompt, prompt string) (string, error) {
-	gModel := g.client.GenerativeModel(g.model)
+	gModel := g.getNextClient().GenerativeModel(g.model)
 	gModel.SafetySettings = g.safetySettings
 	if g.temperature != nil {
 		gModel.Temperature = g.temperature
@@ -82,7 +125,7 @@ func (g *Google) Generate(ctx context.Context, systemPrompt, prompt string) (str
 }
 
 func (g *Google) GenerateStream(ctx context.Context, systemPrompt, prompt string, resultCh chan string, doneCh chan bool, errCh chan error) {
-	gModel := g.client.GenerativeModel(g.model)
+	gModel := g.getNextClient().GenerativeModel(g.model)
 	gModel.SafetySettings = g.safetySettings
 	if g.temperature != nil {
 		gModel.Temperature = g.temperature
@@ -162,7 +205,7 @@ func (g *Google) GenerateWithImages(ctx context.Context, prompt string, images [
 }
 
 func (g *Google) GenerateWithMessages(ctx context.Context, messages []Message) (string, error) {
-	gModel := g.client.GenerativeModel(g.model)
+	gModel := g.getNextClient().GenerativeModel(g.model)
 	gModel.SafetySettings = g.safetySettings
 	if g.temperature != nil {
 		gModel.Temperature = g.temperature

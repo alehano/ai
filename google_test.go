@@ -15,7 +15,7 @@ func TestGoogleGenerateWithImage(t *testing.T) {
 	mimeType := "image/webp"
 
 	temp := float32(1.0)
-	llm, err := NewGoogle(os.Getenv("GOOGLE_PROJECT_ID"), os.Getenv("GOOGLE_LOCATION"),
+	llm, err := NewGoogle(os.Getenv("GOOGLE_PROJECT_ID"), []string{os.Getenv("GOOGLE_LOCATION")},
 		os.Getenv("GOOGLE_MODEL"), 4000, &temp)
 	if err != nil {
 		t.Fatalf("Error creating Google client: %v", err)
