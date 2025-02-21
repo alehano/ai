@@ -17,6 +17,7 @@ import (
 
 type Google struct {
 	clients        []*genai.Client
+	locations      []string
 	clientIndex    int32
 	model          string
 	safetySettings []*genai.SafetySetting
@@ -62,6 +63,7 @@ func NewGoogle(projectID string, locations []string, model string, maxTokens int
 
 	return &Google{
 		clients:     clients,
+		locations:   locations,
 		model:       model,
 		maxTokens:   maxTokens,
 		temperature: temperature,
@@ -177,7 +179,10 @@ func (g *Google) GenerateStream(ctx context.Context, systemPrompt, prompt string
 }
 
 func (g *Google) GetModel() string {
-	return g.model
+	g.mu.RLock()
+	defer g.mu.RUnlock()
+	location := g.locations[atomic.LoadInt32(&g.clientIndex)]
+	return fmt.Sprintf("%s/%s", location, g.model)
 }
 
 func (g *Google) GenerateWithImage(ctx context.Context, prompt string, image io.Reader, mimeType MimeType) (string, error) {
