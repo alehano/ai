@@ -43,6 +43,7 @@ func (f *FallbackLLM) Generate(ctx context.Context, systemPrompt, prompt string)
 func (f *FallbackLLM) GenerateStream(ctx context.Context, systemPrompt, prompt string, resultCh chan string, doneCh chan bool, errCh chan error) {
 	var lastErr error
 	for i, gen := range f.llms {
+		genLocal := gen // Create local copy for goroutine
 		// Send [CLEAR] message if this is not the first generator
 		if i > 0 {
 			select {
@@ -64,7 +65,7 @@ func (f *FallbackLLM) GenerateStream(ctx context.Context, systemPrompt, prompt s
 
 			go func() {
 				// fmt.Printf("[Debug] Generating with model: %s\n", gen.GetModel())
-				gen.GenerateStream(genCtx, systemPrompt, prompt, resultCh, genDoneCh, genErrCh)
+				genLocal.GenerateStream(genCtx, systemPrompt, prompt, resultCh, genDoneCh, genErrCh)
 			}()
 
 			select {
