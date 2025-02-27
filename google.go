@@ -97,7 +97,12 @@ func (g *Google) getNextClient() *genai.Client {
 }
 
 func (g *Google) Generate(ctx context.Context, systemPrompt, prompt string) (string, error) {
-	gModel := g.getNextClient().GenerativeModel(g.model)
+	client := g.getNextClient()
+	if client == nil {
+		return "", fmt.Errorf("no available client")
+	}
+
+	gModel := client.GenerativeModel(g.model)
 	gModel.SafetySettings = g.safetySettings
 	if g.temperature != nil {
 		gModel.Temperature = g.temperature
