@@ -6,7 +6,22 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"time"
 )
+
+// Helper function to copy timeout from original context and create a fresh context
+func copyContextTimeout(originalCtx context.Context) (context.Context, context.CancelFunc) {
+	if deadline, ok := originalCtx.Deadline(); ok {
+		timeout := time.Until(deadline)
+		if timeout <= 0 {
+			// If deadline has passed, give a minimal timeout to avoid immediate cancellation
+			timeout = time.Second
+		}
+		return context.WithTimeout(context.Background(), timeout)
+	}
+	// If no deadline, create a context that can be cancelled but has no timeout
+	return context.WithCancel(context.Background())
+}
 
 type FallbackLLM struct {
 	llms          []LLM
@@ -18,10 +33,15 @@ func NewFallbackLLM(gens []LLM, errorCallback func(error)) *FallbackLLM {
 	return &FallbackLLM{llms: gens, errorCallback: errorCallback}
 }
 
-func (f *FallbackLLM) generateWithFallback(fn func(gen LLM) (string, error)) (string, error) {
+func (f *FallbackLLM) generateWithFallback(originalCtx context.Context, fn func(ctx context.Context, gen LLM) (string, error)) (string, error) {
 	var lastErr error
 	for _, gen := range f.llms {
-		response, err := fn(gen)
+		// Create fresh context with same timeout for each LLM attempt
+		ctx, cancel := copyContextTimeout(originalCtx)
+
+		response, err := fn(ctx, gen)
+		cancel() // Always cancel the context when done
+
 		if err == nil {
 			f.currentModel = gen.GetModel()
 			return response, nil
@@ -35,8 +55,8 @@ func (f *FallbackLLM) generateWithFallback(fn func(gen LLM) (string, error)) (st
 }
 
 func (f *FallbackLLM) Generate(ctx context.Context, systemPrompt, prompt string) (string, error) {
-	return f.generateWithFallback(func(gen LLM) (string, error) {
-		return gen.Generate(ctx, systemPrompt, prompt)
+	return f.generateWithFallback(ctx, func(freshCtx context.Context, gen LLM) (string, error) {
+		return gen.Generate(freshCtx, systemPrompt, prompt)
 	})
 }
 
@@ -46,55 +66,66 @@ func (f *FallbackLLM) GenerateStream(ctx context.Context, systemPrompt, prompt s
 		genLocal := gen // Create local copy for goroutine
 		// Send [CLEAR] message if this is not the first generator
 		if i > 0 {
+			// Check if the original context was cancelled (not just timed out) before proceeding
+			select {
+			case <-ctx.Done():
+				if ctx.Err() == context.Canceled {
+					errCh <- ctx.Err()
+					return
+				}
+				// If it's a timeout, continue with fallback
+			default:
+			}
+
 			select {
 			case resultCh <- "[CLEAR]":
-			case <-ctx.Done():
-				errCh <- ctx.Err()
+			default:
+				// Channel might be closed, continue anyway
+			}
+		}
+
+		// Create fresh context with same timeout for this LLM attempt
+		genCtx, genCancel := copyContextTimeout(ctx)
+		genErrCh := make(chan error, 1)
+		genDoneCh := make(chan bool, 1)
+
+		go func() {
+			// fmt.Printf("[Debug] Generating with model: %s\n", gen.GetModel())
+			genLocal.GenerateStream(genCtx, systemPrompt, prompt, resultCh, genDoneCh, genErrCh)
+		}()
+
+		select {
+		case <-genDoneCh:
+			genCancel()
+			f.currentModel = gen.GetModel() // Set the current model
+			doneCh <- true
+			return
+		case err := <-genErrCh:
+			genCancel()
+			if err != nil {
+				lastErr = err
+				if f.errorCallback != nil {
+					f.errorCallback(fmt.Errorf("Model %s error: %v", gen.GetModel(), err))
+				}
+				// Continue to the next generator for any error (including timeout)
+			} else {
+				// Wait for all results before returning
+				<-genDoneCh
+				doneCh <- true
 				return
 			}
 		}
 
+		// Check if user explicitly cancelled (not just timeout) between attempts
 		select {
 		case <-ctx.Done():
-			errCh <- ctx.Err()
-			return
-		default:
-			genCtx, cancel := context.WithCancel(ctx)
-			genErrCh := make(chan error, 1)
-			genDoneCh := make(chan bool, 1)
-
-			go func() {
-				// fmt.Printf("[Debug] Generating with model: %s\n", gen.GetModel())
-				genLocal.GenerateStream(genCtx, systemPrompt, prompt, resultCh, genDoneCh, genErrCh)
-			}()
-
-			select {
-			case <-genDoneCh:
-				cancel()
-				f.currentModel = gen.GetModel() // Set the current model
-				doneCh <- true
-				return
-			case err := <-genErrCh:
-				cancel()
-				if err == context.Canceled {
-					errCh <- err
-					return
-				}
-				if err != nil {
-					lastErr = err
-					f.errorCallback(fmt.Errorf("Model %s error: %v", gen.GetModel(), err))
-					// Continue to the next generator
-				} else {
-					// Wait for all results before returning
-					<-genDoneCh
-					doneCh <- true
-					return
-				}
-			case <-ctx.Done():
-				cancel()
+			if ctx.Err() == context.Canceled {
+				genCancel()
 				errCh <- ctx.Err()
 				return
 			}
+			// If it's a timeout, continue to next LLM
+		default:
 		}
 	}
 	var finalErr error
@@ -143,12 +174,12 @@ func (f *FallbackLLM) GenerateWithImage(ctx context.Context, prompt string, imag
 		return "", err
 	}
 
-	return f.generateWithFallback(func(gen LLM) (string, error) {
+	return f.generateWithFallback(ctx, func(freshCtx context.Context, gen LLM) (string, error) {
 		var currentImageReader io.Reader
 		if imageBuf != nil {
 			currentImageReader = bytes.NewReader(imageBuf.Bytes())
 		}
-		return gen.GenerateWithImage(ctx, prompt, currentImageReader, mimeType)
+		return gen.GenerateWithImage(freshCtx, prompt, currentImageReader, mimeType)
 	})
 }
 
@@ -167,15 +198,20 @@ func (f *FallbackLLM) GenerateWithImages(ctx context.Context, prompt string, ima
 		imageBufs[i] = buf
 	}
 
-	return f.generateWithFallback(func(gen LLM) (string, error) {
-		return gen.GenerateWithImages(ctx, prompt, newReadersFromBuffers(imageBufs), mimeTypes)
+	return f.generateWithFallback(ctx, func(freshCtx context.Context, gen LLM) (string, error) {
+		return gen.GenerateWithImages(freshCtx, prompt, newReadersFromBuffers(imageBufs), mimeTypes)
 	})
 }
 
 func (f *FallbackLLM) GenerateWithMessages(ctx context.Context, messages []Message) (string, error) {
 	var lastErr error
 	for _, gen := range f.llms {
-		response, err := gen.GenerateWithMessages(ctx, messages)
+		// Create fresh context with same timeout for each LLM attempt
+		freshCtx, cancel := copyContextTimeout(ctx)
+
+		response, err := gen.GenerateWithMessages(freshCtx, messages)
+		cancel() // Always cancel the context when done
+
 		if err == nil {
 			f.currentModel = gen.GetModel()
 			return response, nil
