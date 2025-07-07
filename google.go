@@ -45,6 +45,13 @@ func validateImageSize(image io.Reader) (io.Reader, error) {
 }
 
 func NewGoogle(projectID string, locations []string, model string, maxTokens int, temperature *float32, isJson bool, opts ...option.ClientOption) (*Google, error) {
+	if projectID == "" {
+		return nil, fmt.Errorf("projectID must not be empty")
+	}
+	if len(locations) == 0 {
+		return nil, fmt.Errorf("locations must not be empty")
+	}
+
 	var clients []*genai.Client
 	for _, location := range locations {
 		client, err := genai.NewClient(context.Background(), projectID, location, opts...)
