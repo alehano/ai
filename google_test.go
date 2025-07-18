@@ -16,7 +16,7 @@ func TestGoogleGenerateWithImage(t *testing.T) {
 
 	temp := float32(1.0)
 	llm, err := NewGoogle(os.Getenv("GOOGLE_PROJECT_ID"), []string{os.Getenv("GOOGLE_LOCATION")},
-		os.Getenv("GOOGLE_MODEL"), 4000, &temp, false)
+		os.Getenv("GOOGLE_MODEL"), 4000, &temp, nil, nil, false)
 	if err != nil {
 		t.Fatalf("Error creating Google client: %v", err)
 	}

@@ -23,6 +23,8 @@ type Google struct {
 	safetySettings []*genai.SafetySetting
 	maxTokens      int
 	temperature    *float32
+	topP           *float32
+	topK           *int32
 	isJson         bool
 	mu             sync.RWMutex
 }
@@ -44,7 +46,7 @@ func validateImageSize(image io.Reader) (io.Reader, error) {
 	return bytes.NewReader(buf.Bytes()), nil
 }
 
-func NewGoogle(projectID string, locations []string, model string, maxTokens int, temperature *float32, isJson bool, opts ...option.ClientOption) (*Google, error) {
+func NewGoogle(projectID string, locations []string, model string, maxTokens int, temperature *float32, topP *float32, topK *int32, isJson bool, opts ...option.ClientOption) (*Google, error) {
 	if projectID == "" {
 		return nil, fmt.Errorf("projectID must not be empty")
 	}
@@ -118,6 +120,12 @@ func (g *Google) Generate(ctx context.Context, systemPrompt, prompt string) (str
 	gModel.SafetySettings = g.safetySettings
 	if g.temperature != nil {
 		gModel.Temperature = g.temperature
+	}
+	if g.topP != nil {
+		gModel.TopP = g.topP
+	}
+	if g.topK != nil {
+		gModel.TopK = g.topK
 	}
 	gModel.GenerationConfig.SetMaxOutputTokens(int32(g.maxTokens))
 	gModel.SystemInstruction = &genai.Content{
